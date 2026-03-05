@@ -346,7 +346,7 @@ export default function App() {
                 />
                 <div className="drop-icon">📄</div>
                 <div className="drop-text">
-                  <strong>Click to upload</strong> or drag & drop<br />PDF files only
+                  <strong>Click to upload</strong> or drag & drop<br />PDF files only <strong>(up to 5MB)</strong>
                 </div>
                 {file && <div className="file-name">✓ {file.name}</div>}
               </div>

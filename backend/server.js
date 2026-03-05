@@ -13,6 +13,20 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
+import rateLimit from 'express-rate-limit';
+//Adds headers like X-Content-Type-Options, X-Frame-Options, Content-Security-Policy automatically. Helps protect against common web vulnerabilities.
+import helmet from 'helmet';
+
+//cleans up the whole uploads folder on crash:
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  // Clean up any leftover temp files
+  const uploadsDir = 'uploads/';
+  if (fs.existsSync(uploadsDir)) {
+    fs.readdirSync(uploadsDir).forEach(f => fs.unlinkSync(`${uploadsDir}${f}`));
+  }
+  process.exit(1);
+});
 
 dotenv.config();
 
@@ -20,10 +34,31 @@ const require = createRequire(import.meta.url);
 const PDFParser = require('pdf2json');
 
 const app = express();
+
+app.use(helmet());
+
+// CORS configuration - only allow requests from the frontend domain
+//One caveat though: CORS only protects against browser-based requests. 
+// Someone using curl or Postman can still hit your API directly since those tools don't enforce CORS. That's why rate limiting is also important — it's your second line of defence against direct abuse.
+app.use(cors({
+  origin: 'https://api.paymentsmadeeasy.de'
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10 // limit each IP to 10 requests per IP
+});
+app.use('/adjust-cv', limiter);
+
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ dest: 'uploads/' });
+//folder for multer to store uploaded files temporarily before processing. We will delete them after processing to save space.
+const upload = multer({ 
+  dest: 'uploads/',
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+});
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ERROR: Anthropic API key missing in .env');
@@ -36,6 +71,12 @@ app.get('/', (req, res) => res.json({ status: 'CV Writer API is running' }));
 
 app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
+  
+  // ADD THIS RIGHT HERE
+  if (req.file.mimetype !== 'application/pdf') {
+    fs.unlinkSync(req.file.path); // delete the rejected file
+    return res.status(400).json({ error: 'Only PDF files allowed' });
+  }
 
   try {
     const { role, jobUrl } = req.body;
