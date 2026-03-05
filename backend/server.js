@@ -1,10 +1,6 @@
 // server.js
 
-/* When you create a simple Node.js backend without any special config, Node defaults to CommonJS:
-
-server.js has .js extension
-
-No "type": "module" in package.json */
+/* When you create a simple Node.js backend without any special config, Node defaults to CommonJS: server.js has .js extension No "type": "module" in package.json */
 // server.js (ESM, Node 18+)
 import express from 'express';
 import multer from 'multer';
@@ -14,19 +10,8 @@ import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
 import rateLimit from 'express-rate-limit';
-//Adds headers like X-Content-Type-Options, X-Frame-Options, Content-Security-Policy automatically. Helps protect against common web vulnerabilities.
-import helmet from 'helmet';
-
-//cleans up the whole uploads folder on crash:
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-  // Clean up any leftover temp files
-  const uploadsDir = 'uploads/';
-  if (fs.existsSync(uploadsDir)) {
-    fs.readdirSync(uploadsDir).forEach(f => fs.unlinkSync(`${uploadsDir}${f}`));
-  }
-  process.exit(1);
-});
+import axiosLib from 'axios';
+import * as cheerio from 'cheerio';
 
 dotenv.config();
 
@@ -35,29 +20,22 @@ const PDFParser = require('pdf2json');
 
 const app = express();
 
-app.use(helmet());
-
-// CORS configuration - only allow requests from the frontend domain
-//One caveat though: CORS only protects against browser-based requests. 
-// Someone using curl or Postman can still hit your API directly since those tools don't enforce CORS. That's why rate limiting is also important — it's your second line of defence against direct abuse.
-app.use(cors({
-  origin: 'https://api.paymentsmadeeasy.de'
-}));
-
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10 // limit each IP to 10 requests per IP
+  windowMs: 15 * 60 * 1000,
+  max: 10
 });
 app.use('/adjust-cv', limiter);
 
-app.use(cors());
+
+//eases changes between local dev and remote dev/prod 
+const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
+app.use(cors({ origin: allowedOrigin }));
+
 app.use(express.json());
 
-//folder for multer to store uploaded files temporarily before processing. We will delete them after processing to save space.
-const upload = multer({ 
+const upload = multer({
   dest: 'uploads/',
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -67,22 +45,58 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  const uploadsDir = 'uploads/';
+  if (fs.existsSync(uploadsDir)) {
+    fs.readdirSync(uploadsDir).forEach(f => fs.unlinkSync(`${uploadsDir}${f}`));
+  }
+  process.exit(1);
+});
+
 app.get('/', (req, res) => res.json({ status: 'CV Writer API is running' }));
+
+async function scrapeJobDescription(url) {
+  try {
+    const response = await axiosLib.get(url, {
+      timeout: 8000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    const $ = cheerio.load(response.data);
+    $('script, style, nav, header, footer, iframe, img').remove();
+    const selectors = [
+      '.job-description', '.jobDescription', '#job-description',
+      '[class*="job-detail"]', '[class*="jobDetail"]',
+      '[class*="description"]', 'article', 'main'
+    ];
+    for (const selector of selectors) {
+      const text = $(selector).first().text().trim();
+      if (text.length > 200) return text.slice(0, 4000);
+    }
+    const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 4000);
+    if (bodyText.length > 200) return bodyText;
+    return null;
+  } catch (err) {
+    console.warn('Failed to scrape job URL:', err.message);
+    return null;
+  }
+}
 
 app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
-  
-  // ADD THIS RIGHT HERE
+
   if (req.file.mimetype !== 'application/pdf') {
-    fs.unlinkSync(req.file.path); // delete the rejected file
+    fs.unlinkSync(req.file.path);
     return res.status(400).json({ error: 'Only PDF files allowed' });
   }
 
   try {
-    const { role, jobUrl } = req.body;
+    const { jobUrl, role } = req.body;
     const pdfBuffer = fs.readFileSync(req.file.path);
 
-    // Parse the PDF using pdf2json
+    // Parse the PDF
     let resumeText;
     try {
       resumeText = await new Promise((resolve, reject) => {
@@ -135,17 +149,50 @@ Be darkly funny, menacing, and brilliantly arrogant.
 CV to rewrite:`
     };
 
-    const isJokeRole = jokeRoles.hasOwnProperty(role);
+    const isJokeRole = role && jokeRoles.hasOwnProperty(role);
 
-    const prompt = isJokeRole
-      ? `${jokeRoles[role]}\n\n${resumeText}`
-      : `You are a CV optimization assistant.
+    // Scrape job description if URL provided
+    let jobDescription = null;
+    let scrapeSuccess = false;
+    if (jobUrl && !isJokeRole) {
+      jobDescription = await scrapeJobDescription(jobUrl);
+      scrapeSuccess = !!jobDescription;
+    }
+
+    let prompt;
+    if (isJokeRole) {
+      prompt = `${jokeRoles[role]}\n\n${resumeText}`;
+    } else if (jobDescription) {
+      prompt = `You are an expert CV optimization assistant.
+
+Analyze the following job description and CV, then provide specific, actionable suggestions to tailor the CV for this role.
+
+Focus on:
+- Keywords and skills from the job description that are missing or underemphasized in the CV
+- Experiences in the CV that should be reframed to match the job requirements
+- Achievements that are most relevant and should be highlighted
+- Any gaps or areas to address
+
+Job Description:
+${jobDescription}
+
+CV:
+${resumeText}`;
+    } else if (role) {
+      prompt = `You are a CV optimization assistant.
 Given the following CV text, suggest improvements to target the role "${role}".
-If the user provided a job link (${jobUrl || 'none'}), incorporate role-specific keywords and requirements from that link.
 Do not fully rewrite; instead, return a list of suggested changes, highlighting skills, achievements, and areas to emphasize.
 
 CV:
 ${resumeText}`;
+    } else {
+      prompt = `You are an expert CV optimization assistant.
+Analyze the following CV and provide specific, actionable suggestions to improve it.
+Focus on clarity, impact, and highlighting key achievements.
+
+CV:
+${resumeText}`;
+    }
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -154,7 +201,7 @@ ${resumeText}`;
     });
 
     const suggestions = message.content[0].text;
-    res.json({ suggestions });
+    res.json({ suggestions, scrapeSuccess, jobUrlProvided: !!jobUrl });
 
   } catch (error) {
     console.error('Backend error:', error);
