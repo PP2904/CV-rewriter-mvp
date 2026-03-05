@@ -26,11 +26,8 @@ const limiter = rateLimit({
 });
 app.use('/adjust-cv', limiter);
 
-
-//eases changes between local dev and remote dev/prod 
 const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
 app.use(cors({ origin: allowedOrigin }));
-
 app.use(express.json());
 
 const upload = multer({
@@ -96,7 +93,7 @@ app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
     const { jobUrl, role } = req.body;
     const pdfBuffer = fs.readFileSync(req.file.path);
 
-    // Parse the PDF
+    // Parse the PDF - try pdf2json first, fall back to pdfjs-dist
     let resumeText;
     try {
       resumeText = await new Promise((resolve, reject) => {
@@ -106,14 +103,29 @@ app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
             .flatMap(p => p.Texts)
             .map(t => { try { return decodeURIComponent(t.R[0].T); } catch { return t.R[0].T; } })
             .join(' ');
-          resolve(text);
+          if (text.trim().length > 50) resolve(text);
+          else reject(new Error('Insufficient text extracted'));
         });
         parser.on('pdfParser_dataError', (err) => reject(err));
         parser.parseBuffer(pdfBuffer);
       });
-    } catch (pdfError) {
-      console.error('PDF parse error:', pdfError.message);
-      return res.status(500).json({ error: 'Failed to parse PDF' });
+    } catch (primaryError) {
+      console.warn('pdf2json failed, trying pdfjs-dist:', primaryError.message);
+      try {
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) });
+        const pdf = await loadingTask.promise;
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        resumeText = text;
+      } catch (fallbackError) {
+        console.error('Both PDF parsers failed:', fallbackError.message);
+        return res.status(500).json({ error: 'Failed to parse PDF — please try a different file or re-save your PDF.' });
+      }
     }
 
     if (!resumeText || resumeText.trim().length === 0) {
