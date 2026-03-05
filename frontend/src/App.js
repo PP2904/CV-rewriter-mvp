@@ -62,6 +62,17 @@ const styles = `
     line-height: 1.6;
   }
 
+  .disclaimer {
+    margin-top: 14px;
+    font-size: 11px;
+    color: #4a4038;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
   .card {
     width: 100%;
     max-width: 640px;
@@ -100,15 +111,6 @@ const styles = `
     background: #1a1610;
   }
 
-  .drop-zone input {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
-
   .drop-icon {
     font-size: 28px;
     margin-bottom: 10px;
@@ -133,7 +135,47 @@ const styles = `
     font-style: italic;
   }
 
-  select, input[type="url"] {
+  input[type="url"] {
+    width: 100%;
+    background: #111;
+    border: 1px solid #2a2520;
+    border-radius: 2px;
+    color: #f0ede6;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="url"]:focus {
+    border-color: #c8a870;
+  }
+
+  input[type="url"]:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .url-hint {
+    font-size: 11px;
+    color: #4a4038;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .scrape-warning {
+    background: #1a1508;
+    border: 1px solid #4a3a10;
+    border-radius: 2px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #c8a030;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  select {
     width: 100%;
     background: #111;
     border: 1px solid #2a2520;
@@ -146,22 +188,58 @@ const styles = `
     transition: border-color 0.2s;
     appearance: none;
     -webkit-appearance: none;
-  }
-
-  select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a08060' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 16px center;
     padding-right: 40px;
+    margin-top: 10px;
   }
 
-  select:focus, input[type="url"]:focus {
-    border-color: #c8a870;
+  select:focus { border-color: #c8a870; }
+  select option { background: #161616; }
+
+  .fallback-label {
+    font-size: 11px;
+    color: #c8a030;
+    margin-top: 12px;
+    display: block;
   }
 
-  select option {
-    background: #161616;
+  .joke-section {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #2a2520;
   }
+
+  .joke-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #4a4038;
+    margin-bottom: 12px;
+  }
+
+  .joke-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .joke-btn {
+    flex: 1;
+    background: #111;
+    border: 1px solid #2a2520;
+    border-radius: 2px;
+    color: #6a6050;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    text-align: center;
+  }
+
+  .joke-btn:hover { border-color: #c8a870; color: #c8a870; }
+  .joke-btn.selected { border-color: #c8a870; color: #c8a870; background: #1a1610; }
 
   .btn {
     width: 100%;
@@ -177,22 +255,12 @@ const styles = `
     padding: 16px;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;
-    margin-top: 8px;
+    margin-top: 24px;
   }
 
-  .btn:hover:not(:disabled) {
-    background: #d4b880;
-  }
-
-  .btn:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  .btn:disabled {
-    background: #3a3028;
-    color: #6a6050;
-    cursor: not-allowed;
-  }
+  .btn:hover:not(:disabled) { background: #d4b880; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { background: #3a3028; color: #6a6050; cursor: not-allowed; }
 
   .loading-bar {
     width: 100%;
@@ -215,6 +283,14 @@ const styles = `
     100% { transform: translateX(350%); }
   }
 
+  .loading-status {
+    font-size: 11px;
+    color: #6a6050;
+    margin-top: 10px;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
   .error {
     background: #1a0e0e;
     border: 1px solid #4a2020;
@@ -224,6 +300,15 @@ const styles = `
     color: #d08080;
     margin-top: 20px;
     line-height: 1.6;
+  }
+
+  .scrape-notice {
+    font-size: 11px;
+    color: #6a8050;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .results {
@@ -274,17 +359,57 @@ const styles = `
     background: #2a2520;
     margin: 0 auto 40px;
   }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 `;
+
+const ROLES = [
+  'Product Manager',
+  'Engineering Manager',
+  'Business Analyst',
+  'Implementation Manager',
+  'Solution Architect',
+];
 
 export default function App() {
   const [file, setFile] = useState(null);
-  const [role, setRole] = useState('Product Manager');
   const [jobUrl, setJobUrl] = useState('');
+  const [jokeRole, setJokeRole] = useState(null);
+  const [fallbackRole, setFallbackRole] = useState(ROLES[0]);
+  const [showFallback, setShowFallback] = useState(false);
+  const [scrapeFailed, setScrapeFailed] = useState(false);
+  const [scrapeSucceeded, setScrapeSucceeded] = useState(false);
   const [suggestions, setSuggestions] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
+
+  const handleJokeRole = (role) => {
+    setJokeRole(jokeRole === role ? null : role);
+    if (jokeRole !== role) {
+      setJobUrl('');
+      setShowFallback(false);
+      setScrapeFailed(false);
+    }
+  };
+
+  const handleJobUrl = (e) => {
+    setJobUrl(e.target.value);
+    if (e.target.value) {
+      setJokeRole(null);
+      setScrapeFailed(false);
+      setShowFallback(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -292,19 +417,51 @@ export default function App() {
     setLoading(true);
     setError('');
     setSuggestions('');
+    setScrapeFailed(false);
+    setScrapeSucceeded(false);
+
     try {
       const formData = new FormData();
       formData.append('pdf', file);
-      formData.append('role', role);
       formData.append('jobUrl', jobUrl);
-      const response = await axios.post('https://api.paymentsmadeeasy.de/adjust-cv', formData, {
+
+      if (jokeRole) {
+        formData.append('role', jokeRole);
+        setLoadingStatus('Channeling your character...');
+      } else if (showFallback) {
+        formData.append('role', fallbackRole);
+        setLoadingStatus('Analysing your CV...');
+      } else if (jobUrl) {
+        setLoadingStatus('Fetching job description...');
+        // Small delay so user sees the fetching message
+        await new Promise(r => setTimeout(r, 500));
+        setLoadingStatus('Analysing your CV against the job...');
+      } else {
+        setLoadingStatus('Analysing your CV...');
+      }
+
+      const response = await axios.post('/adjust-cv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setSuggestions(response.data.suggestions);
+
+      const { suggestions, scrapeSuccess, jobUrlProvided } = response.data;
+
+      if (jobUrlProvided && !scrapeSuccess && !jokeRole && !showFallback) {
+        setScrapeFailed(true);
+        setShowFallback(true);
+        setLoading(false);
+        setLoadingStatus('');
+        return;
+      }
+
+      if (jobUrlProvided && scrapeSuccess) setScrapeSucceeded(true);
+      setSuggestions(suggestions);
+
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+      setLoadingStatus('');
     }
   };
 
@@ -315,7 +472,11 @@ export default function App() {
         <div className="header">
           <p className="eyebrow">AI-Powered</p>
           <h1>Tailor your CV<br />for any <span>role</span></h1>
-          <p className="subtitle">Upload your resume · Choose a target role · Get precise suggestions</p>
+          <p className="subtitle">Upload your resume · Paste a job URL · Get precise suggestions</p>
+          <p className="disclaimer">
+            <span style={{ color: '#6a5a40' }}>🔒</span>
+            Your CV is never stored — processed in memory and deleted immediately after analysis.
+          </p>
         </div>
 
         <div className="divider" />
@@ -353,31 +514,51 @@ export default function App() {
             </div>
 
             <div className="field">
-              <label>Target Role</label>
-              <select value={role} onChange={e => setRole(e.target.value)}>
-                <option value="Product Manager">Product Manager</option>
-                <option value="Engineering Manager">Engineering Manager</option>
-                <option value="Business Analyst">Business Analyst</option>
-                <option value="Implementation Manager">Implementation Manager</option>
-                <option value="Solution Architect">Solution Architect</option>
-                <option disabled>──────────</option>
-                <option value="Homer Simpson">🍩 Homer Simpson</option>
-                <option value="Walter White">🧪 Walter White</option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label>Job URL <span style={{color:'#4a4038'}}>(optional)</span></label>
+              <label>Job URL <span style={{ color: '#4a4038' }}>(optional)</span></label>
               <input
                 type="url"
                 placeholder="https://linkedin.com/jobs/..."
                 value={jobUrl}
-                onChange={e => setJobUrl(e.target.value)}
+                onChange={handleJobUrl}
+                disabled={!!jokeRole}
               />
+              <p className="url-hint">
+                Paste a link to the job posting — we'll extract the description and tailor your CV to it.
+              </p>
+
+              {scrapeFailed && (
+                <div className="scrape-warning fade-in">
+                  ⚠ Couldn't fetch that job page — the site may block automated access (common on LinkedIn & Indeed).
+                  <span className="fallback-label">Select a role below and we'll tailor your CV to it instead:</span>
+                  <select value={fallbackRole} onChange={e => setFallbackRole(e.target.value)}>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="joke-section">
+              <p className="joke-label">🎭 Just for fun</p>
+              <div className="joke-buttons">
+                <button
+                  type="button"
+                  className={`joke-btn ${jokeRole === 'Homer Simpson' ? 'selected' : ''}`}
+                  onClick={() => handleJokeRole('Homer Simpson')}
+                >
+                  🍩 Homer Simpson
+                </button>
+                <button
+                  type="button"
+                  className={`joke-btn ${jokeRole === 'Walter White' ? 'selected' : ''}`}
+                  onClick={() => handleJokeRole('Walter White')}
+                >
+                  🧪 Walter White
+                </button>
+              </div>
             </div>
 
             <button className="btn" type="submit" disabled={loading || !file}>
-              {loading ? 'Analysing your CV...' : 'Generate Suggestions →'}
+              {loading ? loadingStatus || 'Analysing your CV...' : 'Generate Suggestions →'}
             </button>
 
             {loading && (
@@ -390,8 +571,12 @@ export default function App() {
           </form>
         </div>
 
+        {scrapeSucceeded && !loading && suggestions && (
+          <p className="scrape-notice fade-in">✓ Job description fetched and used in analysis</p>
+        )}
+
         {suggestions && (
-          <div className="results">
+          <div className="results fade-in">
             <div className="results-header">
               <span className="results-label">AI Suggestions</span>
               <div className="results-line" />
@@ -401,7 +586,6 @@ export default function App() {
             </div>
           </div>
         )}
-        <p style={{marginTop: '14px', fontSize: '11px', color: '#c8bca8', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}><span style={{color: '#6a5a40'}}>🔒</span> Your CV is never stored — processed in memory and deleted immediately after analysis.</p>
       </div>
     </>
   );
