@@ -65,7 +65,7 @@ const styles = `
   .disclaimer {
     margin-top: 14px;
     font-size: 11px;
-    color: #4a4038;
+    color: inherit;
     letter-spacing: 0.05em;
     display: flex;
     align-items: center;
@@ -473,10 +473,6 @@ export default function App() {
           <p className="eyebrow">AI-Powered</p>
           <h1>Tailor your CV<br />for any <span>role</span></h1>
           <p className="subtitle">Upload your resume · Paste a job URL · Get precise suggestions</p>
-          <p className="disclaimer">
-            <span style={{ color: '#6a5a40' }}>🔒</span>
-            Your CV is never stored — processed in memory and deleted immediately after analysis.
-          </p>
         </div>
 
         <div className="divider" />
@@ -586,6 +582,10 @@ export default function App() {
             </div>
           </div>
         )}
+        <p className="disclaimer">
+            <span style={{ color: '#f8e831' }}>🔒</span>
+            Your CV is never stored — processed in memory and deleted immediately after analysis.
+          </p>
       </div>
     </>
   );
