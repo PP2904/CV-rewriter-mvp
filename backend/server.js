@@ -104,7 +104,7 @@ app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
         parser.on('pdfParser_dataReady', (data) => {
           const text = data.Pages
             .flatMap(p => p.Texts)
-            .map(t => decodeURIComponent(t.R[0].T))
+            .map(t => { try { return decodeURIComponent(t.R[0].T); } catch { return t.R[0].T; } })
             .join(' ');
           resolve(text);
         });
