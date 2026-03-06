@@ -32,7 +32,6 @@ const styles = `
   }
 
   .eyebrow {
-    font-family: 'DM Mono', monospace;
     font-size: 11px;
     font-weight: 400;
     letter-spacing: 0.25em;
@@ -50,10 +49,7 @@ const styles = `
     margin-bottom: 16px;
   }
 
-  h1 span {
-    color: #c8a870;
-    font-style: italic;
-  }
+  h1 span { color: #c8a870; font-style: italic; }
 
   .subtitle {
     font-size: 13px;
@@ -65,7 +61,7 @@ const styles = `
   .disclaimer {
     margin-top: 14px;
     font-size: 11px;
-    color: inherit;
+    color: #4a4038;
     letter-spacing: 0.05em;
     display: flex;
     align-items: center;
@@ -82,9 +78,7 @@ const styles = `
     padding: 40px;
   }
 
-  .field {
-    margin-bottom: 28px;
-  }
+  .field { margin-bottom: 28px; }
 
   label {
     display: block;
@@ -111,29 +105,12 @@ const styles = `
     background: #1a1610;
   }
 
-  .drop-icon {
-    font-size: 28px;
-    margin-bottom: 10px;
-    opacity: 0.5;
-  }
+  .drop-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.5; }
 
-  .drop-text {
-    font-size: 12px;
-    color: #6a6050;
-    line-height: 1.6;
-  }
+  .drop-text { font-size: 12px; color: #6a6050; line-height: 1.6; }
+  .drop-text strong { color: #c8a870; font-weight: 500; }
 
-  .drop-text strong {
-    color: #c8a870;
-    font-weight: 500;
-  }
-
-  .file-name {
-    font-size: 12px;
-    color: #c8a870;
-    margin-top: 8px;
-    font-style: italic;
-  }
+  .file-name { font-size: 12px; color: #c8a870; margin-top: 8px; font-style: italic; }
 
   input[type="url"] {
     width: 100%;
@@ -148,21 +125,10 @@ const styles = `
     transition: border-color 0.2s;
   }
 
-  input[type="url"]:focus {
-    border-color: #c8a870;
-  }
+  input[type="url"]:focus { border-color: #c8a870; }
+  input[type="url"]:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  input[type="url"]:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .url-hint {
-    font-size: 11px;
-    color: #4a4038;
-    margin-top: 8px;
-    line-height: 1.5;
-  }
+  .url-hint { font-size: 11px; color: #4a4038; margin-top: 8px; line-height: 1.5; }
 
   .scrape-warning {
     background: #1a1508;
@@ -198,12 +164,7 @@ const styles = `
   select:focus { border-color: #c8a870; }
   select option { background: #161616; }
 
-  .fallback-label {
-    font-size: 11px;
-    color: #c8a030;
-    margin-top: 12px;
-    display: block;
-  }
+  .fallback-label { font-size: 11px; color: #c8a030; margin-top: 12px; display: block; }
 
   .joke-section {
     margin-top: 28px;
@@ -219,10 +180,7 @@ const styles = `
     margin-bottom: 12px;
   }
 
-  .joke-buttons {
-    display: flex;
-    gap: 10px;
-  }
+  .joke-buttons { display: flex; gap: 10px; }
 
   .joke-btn {
     flex: 1;
@@ -262,6 +220,39 @@ const styles = `
   .btn:active:not(:disabled) { transform: translateY(1px); }
   .btn:disabled { background: #3a3028; color: #6a6050; cursor: not-allowed; }
 
+  .loading-steps {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .loading-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: #4a4038;
+    transition: color 0.3s;
+  }
+
+  .loading-step.active { color: #c8a870; }
+  .loading-step.done { color: #6a8050; }
+
+  .step-icon { width: 16px; text-align: center; }
+
+  .spinner {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid #4a4038;
+    border-top-color: #c8a870;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   .loading-bar {
     width: 100%;
     height: 2px;
@@ -283,14 +274,6 @@ const styles = `
     100% { transform: translateX(350%); }
   }
 
-  .loading-status {
-    font-size: 11px;
-    color: #6a6050;
-    margin-top: 10px;
-    text-align: center;
-    letter-spacing: 0.05em;
-  }
-
   .error {
     background: #1a0e0e;
     border: 1px solid #4a2020;
@@ -302,19 +285,26 @@ const styles = `
     line-height: 1.6;
   }
 
-  .scrape-notice {
+  .privacy-report {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 16px;
+    background: #0e140e;
+    border: 1px solid #1a2a1a;
+    border-radius: 2px;
+    padding: 14px 20px;
     font-size: 11px;
     color: #6a8050;
-    margin-top: 8px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    line-height: 1.6;
   }
 
   .results {
     width: 100%;
     max-width: 640px;
-    margin-top: 32px;
+    margin-top: 16px;
   }
 
   .results-header {
@@ -331,11 +321,7 @@ const styles = `
     color: #a08060;
   }
 
-  .results-line {
-    flex: 1;
-    height: 1px;
-    background: #2a2520;
-  }
+  .results-line { flex: 1; height: 1px; background: #2a2520; }
 
   .results-box {
     background: #161616;
@@ -361,7 +347,7 @@ const styles = `
   }
 
   .fade-in {
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.4s ease;
   }
 
   @keyframes fadeIn {
@@ -378,6 +364,24 @@ const ROLES = [
   'Solution Architect',
 ];
 
+const STEPS = [
+  { id: 'parse', label: 'Parsing your CV...' },
+  { id: 'anonymise', label: 'Anonymising your data...' },
+  { id: 'analyse', label: 'Analysing against job description...' },
+];
+
+function buildPrivacyReport(piiRemoved) {
+  if (!piiRemoved) return null;
+  const items = [];
+  if (piiRemoved.name > 0) items.push(`${piiRemoved.name} name`);
+  if (piiRemoved.email > 0) items.push(`${piiRemoved.email} email`);
+  if (piiRemoved.phone > 0) items.push(`${piiRemoved.phone} phone number`);
+  if (piiRemoved.url > 0) items.push(`${piiRemoved.url} URL`);
+  if (piiRemoved.address > 0) items.push(`${piiRemoved.address} address`);
+  if (items.length === 0) return 'No PII detected in your CV.';
+  return `Removed before sending to AI: ${items.join(', ')}.`;
+}
+
 export default function App() {
   const [file, setFile] = useState(null);
   const [jobUrl, setJobUrl] = useState('');
@@ -385,10 +389,10 @@ export default function App() {
   const [fallbackRole, setFallbackRole] = useState(ROLES[0]);
   const [showFallback, setShowFallback] = useState(false);
   const [scrapeFailed, setScrapeFailed] = useState(false);
-  const [scrapeSucceeded, setScrapeSucceeded] = useState(false);
   const [suggestions, setSuggestions] = useState('');
+  const [piiRemoved, setPiiRemoved] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState('');
+  const [currentStep, setCurrentStep] = useState(null);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
@@ -417,53 +421,53 @@ export default function App() {
     setLoading(true);
     setError('');
     setSuggestions('');
+    setPiiRemoved(null);
     setScrapeFailed(false);
-    setScrapeSucceeded(false);
 
     try {
       const formData = new FormData();
       formData.append('pdf', file);
       formData.append('jobUrl', jobUrl);
+      if (jokeRole) formData.append('role', jokeRole);
+      if (showFallback) formData.append('role', fallbackRole);
 
-      if (jokeRole) {
-        formData.append('role', jokeRole);
-        setLoadingStatus('Channeling your character...');
-      } else if (showFallback) {
-        formData.append('role', fallbackRole);
-        setLoadingStatus('Analysing your CV...');
-      } else if (jobUrl) {
-        setLoadingStatus('Fetching job description...');
-        // Small delay so user sees the fetching message
-        await new Promise(r => setTimeout(r, 500));
-        setLoadingStatus('Analysing your CV against the job...');
-      } else {
-        setLoadingStatus('Analysing your CV...');
-      }
+      // Step 1 - parse
+      setCurrentStep('parse');
+      await new Promise(r => setTimeout(r, 600));
+
+      // Step 2 - anonymise
+      setCurrentStep('anonymise');
+      await new Promise(r => setTimeout(r, 700));
+
+      // Step 3 - analyse
+      setCurrentStep('analyse');
 
       const response = await axios.post('/adjust-cv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      const { suggestions, scrapeSuccess, jobUrlProvided } = response.data;
+      const { suggestions, scrapeSuccess, jobUrlProvided, piiRemoved } = response.data;
 
       if (jobUrlProvided && !scrapeSuccess && !jokeRole && !showFallback) {
         setScrapeFailed(true);
         setShowFallback(true);
         setLoading(false);
-        setLoadingStatus('');
+        setCurrentStep(null);
         return;
       }
 
-      if (jobUrlProvided && scrapeSuccess) setScrapeSucceeded(true);
       setSuggestions(suggestions);
+      setPiiRemoved(piiRemoved);
 
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
-      setLoadingStatus('');
+      setCurrentStep(null);
     }
   };
+
+  const privacyReport = buildPrivacyReport(piiRemoved);
 
   return (
     <>
@@ -473,6 +477,10 @@ export default function App() {
           <p className="eyebrow">AI-Powered</p>
           <h1>Tailor your CV<br />for any <span>role</span></h1>
           <p className="subtitle">Upload your resume · Paste a job URL · Get precise suggestions</p>
+          <p className="disclaimer">
+            <span style={{ color: '#6a5a40' }}>🔒</span>
+            Your CV is anonymised before reaching AI — personal data never leaves your control.
+          </p>
         </div>
 
         <div className="divider" />
@@ -554,21 +562,42 @@ export default function App() {
             </div>
 
             <button className="btn" type="submit" disabled={loading || !file}>
-              {loading ? loadingStatus || 'Analysing your CV...' : 'Generate Suggestions →'}
+              {loading ? 'Processing...' : 'Generate Suggestions →'}
             </button>
 
             {loading && (
-              <div className="loading-bar">
-                <div className="loading-bar-inner" />
-              </div>
+              <>
+                <div className="loading-bar">
+                  <div className="loading-bar-inner" />
+                </div>
+                <div className="loading-steps">
+                  {STEPS.map((step, i) => {
+                    const stepIds = STEPS.map(s => s.id);
+                    const currentIdx = stepIds.indexOf(currentStep);
+                    const stepIdx = stepIds.indexOf(step.id);
+                    const isDone = stepIdx < currentIdx;
+                    const isActive = step.id === currentStep;
+                    return (
+                      <div key={step.id} className={`loading-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}>
+                        <span className="step-icon">
+                          {isDone ? '✓' : isActive ? <span className="spinner" style={{display:'inline-block'}} /> : '○'}
+                        </span>
+                        {step.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
 
             {error && <div className="error">⚠ {error}</div>}
           </form>
         </div>
 
-        {scrapeSucceeded && !loading && suggestions && (
-          <p className="scrape-notice fade-in">✓ Job description fetched and used in analysis</p>
+        {privacyReport && suggestions && (
+          <div className="privacy-report fade-in">
+            🔒 {privacyReport}
+          </div>
         )}
 
         {suggestions && (
@@ -582,10 +611,6 @@ export default function App() {
             </div>
           </div>
         )}
-        <p className="disclaimer">
-            <span style={{ color: '#f8e831' }}>🔒</span>
-            Your CV is never stored — processed in memory and deleted immediately after analysis.
-          </p>
       </div>
     </>
   );
