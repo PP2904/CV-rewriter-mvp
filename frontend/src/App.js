@@ -61,7 +61,7 @@ const styles = `
   .disclaimer {
     margin-top: 14px;
     font-size: 11px;
-    color: #4a4038;
+    color: #c8a870;
     letter-spacing: 0.05em;
     display: flex;
     align-items: center;
@@ -128,7 +128,7 @@ const styles = `
   input[type="url"]:focus { border-color: #c8a870; }
   input[type="url"]:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .url-hint { font-size: 11px; color: #4a4038; margin-top: 8px; line-height: 1.5; }
+  .url-hint { font-size: 11px; color: #c8a870; margin-top: 8px; line-height: 1.5; }
 
   .scrape-warning {
     background: #1a1508;
@@ -165,39 +165,6 @@ const styles = `
   select option { background: #161616; }
 
   .fallback-label { font-size: 11px; color: #c8a030; margin-top: 12px; display: block; }
-
-  .joke-section {
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid #2a2520;
-  }
-
-  .joke-label {
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: #4a4038;
-    margin-bottom: 12px;
-  }
-
-  .joke-buttons { display: flex; gap: 10px; }
-
-  .joke-btn {
-    flex: 1;
-    background: #111;
-    border: 1px solid #2a2520;
-    border-radius: 2px;
-    color: #6a6050;
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    padding: 10px;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-    text-align: center;
-  }
-
-  .joke-btn:hover { border-color: #c8a870; color: #c8a870; }
-  .joke-btn.selected { border-color: #c8a870; color: #c8a870; background: #1a1610; }
 
   .btn {
     width: 100%;
@@ -249,6 +216,7 @@ const styles = `
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     flex-shrink: 0;
+    display: inline-block;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -339,13 +307,6 @@ const styles = `
     line-height: 1.8;
   }
 
-  .divider {
-    width: 1px;
-    height: 40px;
-    background: #2a2520;
-    margin: 0 auto 40px;
-  }
-
   .fade-in {
     animation: fadeIn 0.4s ease;
   }
@@ -385,7 +346,6 @@ function buildPrivacyReport(piiRemoved) {
 export default function App() {
   const [file, setFile] = useState(null);
   const [jobUrl, setJobUrl] = useState('');
-  const [jokeRole, setJokeRole] = useState(null);
   const [fallbackRole, setFallbackRole] = useState(ROLES[0]);
   const [showFallback, setShowFallback] = useState(false);
   const [scrapeFailed, setScrapeFailed] = useState(false);
@@ -397,19 +357,9 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
 
-  const handleJokeRole = (role) => {
-    setJokeRole(jokeRole === role ? null : role);
-    if (jokeRole !== role) {
-      setJobUrl('');
-      setShowFallback(false);
-      setScrapeFailed(false);
-    }
-  };
-
   const handleJobUrl = (e) => {
     setJobUrl(e.target.value);
     if (e.target.value) {
-      setJokeRole(null);
       setScrapeFailed(false);
       setShowFallback(false);
     }
@@ -428,18 +378,14 @@ export default function App() {
       const formData = new FormData();
       formData.append('pdf', file);
       formData.append('jobUrl', jobUrl);
-      if (jokeRole) formData.append('role', jokeRole);
       if (showFallback) formData.append('role', fallbackRole);
 
-      // Step 1 - parse
       setCurrentStep('parse');
       await new Promise(r => setTimeout(r, 600));
 
-      // Step 2 - anonymise
       setCurrentStep('anonymise');
       await new Promise(r => setTimeout(r, 700));
 
-      // Step 3 - analyse
       setCurrentStep('analyse');
 
       const response = await axios.post('/adjust-cv', formData, {
@@ -448,7 +394,7 @@ export default function App() {
 
       const { suggestions, scrapeSuccess, jobUrlProvided, piiRemoved } = response.data;
 
-      if (jobUrlProvided && !scrapeSuccess && !jokeRole && !showFallback) {
+      if (jobUrlProvided && !scrapeSuccess && !showFallback) {
         setScrapeFailed(true);
         setShowFallback(true);
         setLoading(false);
@@ -473,19 +419,16 @@ export default function App() {
     <>
       <style>{styles}</style>
       <div className="app">
+        <div className="top-banner">
+          🚧 PDF &amp; Word download coming soon — suggestions are currently text only  🚧
+        </div>
         <div className="header">
-          <p className="eyebrow">AI-Powered</p>
           <h1>Tailor your CV<br />for any <span>role</span></h1>
           <p className="subtitle">Upload your resume · Paste a job URL · Get precise suggestions</p>
-          <p className="disclaimer">
-            <span style={{ color: '#6a5a40' }}>🔒</span>
-            Your CV is anonymised before reaching AI — personal data never leaves your control.
-          </p>
         </div>
 
-        <div className="divider" />
-
         <div className="card">
+          
           <form onSubmit={handleSubmit}>
 
             <div className="field">
@@ -518,17 +461,13 @@ export default function App() {
             </div>
 
             <div className="field">
-              <label>Job URL <span style={{ color: '#4a4038' }}>(optional)</span></label>
+              <label>Job URL <span style={{ color: '#4a4038' }}></span></label>
               <input
                 type="url"
                 placeholder="https://linkedin.com/jobs/..."
                 value={jobUrl}
                 onChange={handleJobUrl}
-                disabled={!!jokeRole}
               />
-              <p className="url-hint">
-                Paste a link to the job posting — we'll extract the description and tailor your CV to it.
-              </p>
 
               {scrapeFailed && (
                 <div className="scrape-warning fade-in">
@@ -541,26 +480,6 @@ export default function App() {
               )}
             </div>
 
-            <div className="joke-section">
-              <p className="joke-label">🎭 Just for fun</p>
-              <div className="joke-buttons">
-                <button
-                  type="button"
-                  className={`joke-btn ${jokeRole === 'Homer Simpson' ? 'selected' : ''}`}
-                  onClick={() => handleJokeRole('Homer Simpson')}
-                >
-                  🍩 Homer Simpson
-                </button>
-                <button
-                  type="button"
-                  className={`joke-btn ${jokeRole === 'Walter White' ? 'selected' : ''}`}
-                  onClick={() => handleJokeRole('Walter White')}
-                >
-                  🧪 Walter White
-                </button>
-              </div>
-            </div>
-
             <button className="btn" type="submit" disabled={loading || !file}>
               {loading ? 'Processing...' : 'Generate Suggestions →'}
             </button>
@@ -571,7 +490,7 @@ export default function App() {
                   <div className="loading-bar-inner" />
                 </div>
                 <div className="loading-steps">
-                  {STEPS.map((step, i) => {
+                  {STEPS.map((step) => {
                     const stepIds = STEPS.map(s => s.id);
                     const currentIdx = stepIds.indexOf(currentStep);
                     const stepIdx = stepIds.indexOf(step.id);
@@ -580,7 +499,7 @@ export default function App() {
                     return (
                       <div key={step.id} className={`loading-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}>
                         <span className="step-icon">
-                          {isDone ? '✓' : isActive ? <span className="spinner" style={{display:'inline-block'}} /> : '○'}
+                          {isDone ? '✓' : isActive ? <span className="spinner" /> : '○'}
                         </span>
                         {step.label}
                       </div>
@@ -603,7 +522,7 @@ export default function App() {
         {suggestions && (
           <div className="results fade-in">
             <div className="results-header">
-              <span className="results-label">AI Suggestions</span>
+              <span className="results-label">Suggestions</span>
               <div className="results-line" />
             </div>
             <div className="results-box">
@@ -611,6 +530,10 @@ export default function App() {
             </div>
           </div>
         )}
+         <p className="disclaimer">
+            <span>🔒</span>
+            Your CV is anonymised before reaching AI — personal data never leaves your control.
+          </p>
       </div>
     </>
   );
