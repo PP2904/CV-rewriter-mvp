@@ -1,6 +1,3 @@
-// server.js
-
-/* When you create a simple Node.js backend without any special config, Node defaults to CommonJS: server.js has .js extension No "type": "module" in package.json */
 // server.js (ESM, Node 18+)
 import express from 'express';
 import multer from 'multer';
@@ -12,6 +9,8 @@ import { createRequire } from 'module';
 import rateLimit from 'express-rate-limit';
 import axiosLib from 'axios';
 import * as cheerio from 'cheerio';
+import { faker } from '@faker-js/faker';
+import nlp from 'compromise';
 
 dotenv.config();
 
@@ -81,6 +80,146 @@ async function scrapeJobDescription(url) {
   }
 }
 
+function collapseSpacedChars(text) {
+  // Replace double spaces (word boundaries) with a placeholder
+  let result = text.replace(/  +/g, '§');
+  // Collapse single-spaced individual characters within each word
+  result = result.replace(/\b([A-Za-z])(?: ([A-Za-z])){2,}\b/g, (match) => match.replace(/ /g, ''));
+  // Restore word boundaries
+  result = result.replace(/§/g, ' ');
+  return result;
+}
+
+function cleanAndAnonymise(text) {
+  // Step 1 — collapse spaced-out individual characters FIRST
+  let cleaned = collapseSpacedChars(text);
+
+  // Step 2 — then normalise whitespace
+  cleaned = cleaned
+    .replace(/\s+/g, ' ')
+    .replace(/(%[0-9A-F]{2})+/gi, '')
+    .trim();
+
+  const removed = { name: 0, email: 0, phone: 0, url: 0, address: 0 };
+
+  // Step 2 — remove emails
+  cleaned = cleaned.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, () => {
+    removed.email++;
+    return '[EMAIL]';
+  });
+
+  // Step 3 — remove phone numbers
+  cleaned = cleaned.replace(/(\+?[\d\s\-().]{7,20}(?=\s|$))/g, (match) => {
+    const digits = match.replace(/\D/g, '');
+    if (digits.length >= 7 && digits.length <= 15) {
+      removed.phone++;
+      return '[PHONE]';
+    }
+    return match;
+  });
+
+  // Step 4 — remove URLs
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, () => { removed.url++; return '[URL]'; });
+  cleaned = cleaned.replace(/linkedin\.com\/in\/[^\s]+/gi, () => { removed.url++; return '[URL]'; });
+  cleaned = cleaned.replace(/www\.[^\s]+/gi, () => { removed.url++; return '[URL]'; });
+
+  // Step 5 — remove street addresses
+  cleaned = cleaned.replace(/\d+\s+[A-Z][a-z]+\s+(Street|St|Avenue|Ave|Road|Rd|Lane|Ln|Drive|Dr|Court|Ct|Boulevard|Blvd)[^\n,]*/gi, () => {
+    removed.address++;
+    return '[ADDRESS]';
+  });
+
+  // Generate one placeholder name to use consistently throughout
+  const placeholderName = faker.person.firstName();
+
+  // Step 6a — handle all-caps names at start of CV (common PDF header format)
+  // Matches "PETER PFROMMER" or "PETER J PFROMMER" at the very beginning
+  const nonNameSections = ['SUMMARY', 'EXPERIENCE', 'EDUCATION', 'SKILLS', 'PROFILE', 'CAREER', 'ABOUT', 'CURRICULUM', 'RELEVANT', 'HOBBY'];
+  const allCapsMatch = cleaned.match(/^([A-Z]{2,}(?:\s[A-Z]{2,}){1,3})\b/);
+  if (allCapsMatch) {
+    const candidate = allCapsMatch[1];
+    const wordCount = candidate.split(' ').length;
+    if (wordCount <= 4 && !nonNameSections.some(w => candidate.includes(w))) {
+      const nameRegex = new RegExp(candidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      cleaned = cleaned.replace(nameRegex, placeholderName.toUpperCase());
+      removed.name++;
+    }
+  }
+
+  // Step 6b — use compromise NLP to detect mixed-case person names throughout
+  const doc = nlp(cleaned);
+  const people = doc.people().out('array');
+  const uniqueNames = [...new Set(people)].filter(n => n.trim().length > 1);
+
+  if (uniqueNames.length > 0) {
+    for (const name of uniqueNames) {
+      const nameRegex = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      cleaned = cleaned.replace(nameRegex, placeholderName);
+    }
+    removed.name += uniqueNames.length;
+  }
+
+  // Step 6c — fallback regex for Title Case names at start if nothing was caught
+  if (removed.name === 0) {
+    const firstChunk = cleaned.slice(0, 150);
+    const nameMatch = firstChunk.match(/^([A-Z][a-z]+ [A-Z][a-z]+)/);
+    if (nameMatch && !nonNameSections.some(w => nameMatch[1].toUpperCase().includes(w))) {
+      const nameRegex = new RegExp(nameMatch[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      cleaned = cleaned.replace(nameRegex, placeholderName);
+      removed.name++;
+    }
+  }
+
+  return { cleaned, removed };
+}
+
+async function parsePDF(pdfBuffer) {
+  try {
+    return await new Promise((resolve, reject) => {
+      const parser = new PDFParser();
+      parser.on('pdfParser_dataReady', (data) => {
+        const text = data.Pages
+          .flatMap(p => p.Texts)
+          .map(t => { try { return decodeURIComponent(t.R[0].T); } catch { return t.R[0].T; } })
+          .join(' ');
+        if (text.trim().length > 50) resolve(text);
+        else reject(new Error('Insufficient text extracted'));
+      });
+      parser.on('pdfParser_dataError', (err) => reject(err));
+      parser.parseBuffer(pdfBuffer);
+    });
+  } catch (primaryError) {
+    console.warn('pdf2json failed, trying pdfjs-dist:', primaryError.message);
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    return text;
+  }
+}
+
+// Debug endpoint — only active when DEBUG=true in .env
+if (process.env.DEBUG === 'true') {
+  app.post('/debug-cv', upload.single('pdf'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
+    try {
+      const pdfBuffer = fs.readFileSync(req.file.path);
+      const resumeText = await parsePDF(pdfBuffer);
+      const { cleaned, removed } = cleanAndAnonymise(resumeText);
+      res.json({ raw: resumeText, anonymised: cleaned, piiRemoved: removed });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    } finally {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    }
+  });
+  console.log('Debug mode enabled — /debug-cv endpoint active');
+}
+
 app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
 
@@ -93,44 +232,20 @@ app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
     const { jobUrl, role } = req.body;
     const pdfBuffer = fs.readFileSync(req.file.path);
 
-    // Parse the PDF - try pdf2json first, fall back to pdfjs-dist
     let resumeText;
     try {
-      resumeText = await new Promise((resolve, reject) => {
-        const parser = new PDFParser();
-        parser.on('pdfParser_dataReady', (data) => {
-          const text = data.Pages
-            .flatMap(p => p.Texts)
-            .map(t => { try { return decodeURIComponent(t.R[0].T); } catch { return t.R[0].T; } })
-            .join(' ');
-          if (text.trim().length > 50) resolve(text);
-          else reject(new Error('Insufficient text extracted'));
-        });
-        parser.on('pdfParser_dataError', (err) => reject(err));
-        parser.parseBuffer(pdfBuffer);
-      });
-    } catch (primaryError) {
-      console.warn('pdf2json failed, trying pdfjs-dist:', primaryError.message);
-      try {
-        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) });
-        const pdf = await loadingTask.promise;
-        let text = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map(item => item.str).join(' ') + '\n';
-        }
-        resumeText = text;
-      } catch (fallbackError) {
-        console.error('Both PDF parsers failed:', fallbackError.message);
-        return res.status(500).json({ error: 'Failed to parse PDF — please try a different file or re-save your PDF.' });
-      }
+      resumeText = await parsePDF(pdfBuffer);
+    } catch (err) {
+      console.error('Both PDF parsers failed:', err.message);
+      return res.status(500).json({ error: 'Failed to parse PDF — please try a different file or re-save your PDF.' });
     }
 
     if (!resumeText || resumeText.trim().length === 0) {
       return res.status(400).json({ error: 'PDF contains no text' });
     }
+
+    // Clean and anonymise before sending to Claude
+    const { cleaned: anonymisedText, removed: piiRemoved } = cleanAndAnonymise(resumeText);
 
     const jokeRoles = {
       'Homer Simpson': `You are a hilariously in-character CV rewriter. Rewrite CV suggestions as if Homer Simpson himself is reviewing it.
@@ -173,7 +288,7 @@ CV to rewrite:`
 
     let prompt;
     if (isJokeRole) {
-      prompt = `${jokeRoles[role]}\n\n${resumeText}`;
+      prompt = `${jokeRoles[role]}\n\n${anonymisedText}`;
     } else if (jobDescription) {
       prompt = `You are an expert CV optimization assistant.
 
@@ -189,21 +304,21 @@ Job Description:
 ${jobDescription}
 
 CV:
-${resumeText}`;
+${anonymisedText}`;
     } else if (role) {
       prompt = `You are a CV optimization assistant.
 Given the following CV text, suggest improvements to target the role "${role}".
 Do not fully rewrite; instead, return a list of suggested changes, highlighting skills, achievements, and areas to emphasize.
 
 CV:
-${resumeText}`;
+${anonymisedText}`;
     } else {
       prompt = `You are an expert CV optimization assistant.
 Analyze the following CV and provide specific, actionable suggestions to improve it.
 Focus on clarity, impact, and highlighting key achievements.
 
 CV:
-${resumeText}`;
+${anonymisedText}`;
     }
 
     const message = await anthropic.messages.create({
@@ -213,7 +328,7 @@ ${resumeText}`;
     });
 
     const suggestions = message.content[0].text;
-    res.json({ suggestions, scrapeSuccess, jobUrlProvided: !!jobUrl });
+    res.json({ suggestions, scrapeSuccess, jobUrlProvided: !!jobUrl, piiRemoved });
 
   } catch (error) {
     console.error('Backend error:', error);
