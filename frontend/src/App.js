@@ -440,7 +440,7 @@ export default function App() {
       <style>{styles}</style>
       <div className="app">
         <div className="top-banner">
-          🚧 PDF &amp; Word download coming soon — suggestions are currently text only  🚧
+          🚧 PDF &amp; Word download coming soon — suggestions are currently text only
         </div>
         <div className="header">
           <h1>Tailor your CV<br />for any <span>role</span></h1>
