@@ -7,8 +7,6 @@ import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
 import rateLimit from 'express-rate-limit';
-import axiosLib from 'axios';
-import * as cheerio from 'cheerio';
 import { faker } from '@faker-js/faker';
 import nlp from 'compromise';
 
@@ -51,34 +49,6 @@ process.on('uncaughtException', (err) => {
 });
 
 app.get('/', (req, res) => res.json({ status: 'CV Writer API is running' }));
-
-async function scrapeJobDescription(url) {
-  try {
-    const response = await axiosLib.get(url, {
-      timeout: 8000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
-    const $ = cheerio.load(response.data);
-    $('script, style, nav, header, footer, iframe, img').remove();
-    const selectors = [
-      '.job-description', '.jobDescription', '#job-description',
-      '[class*="job-detail"]', '[class*="jobDetail"]',
-      '[class*="description"]', 'article', 'main'
-    ];
-    for (const selector of selectors) {
-      const text = $(selector).first().text().trim();
-      if (text.length > 200) return text.slice(0, 4000);
-    }
-    const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 4000);
-    if (bodyText.length > 200) return bodyText;
-    return null;
-  } catch (err) {
-    console.warn('Failed to scrape job URL:', err.message);
-    return null;
-  }
-}
 
 function collapseSpacedChars(text) {
   let result = text.replace(/  +/g, '§');
@@ -241,7 +211,7 @@ app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
   }
 
   try {
-    const { jobUrl, role } = req.body;
+    const { jobDescription: jobInput } = req.body;
     const pdfBuffer = fs.readFileSync(req.file.path);
 
     let resumeText;
@@ -258,19 +228,10 @@ app.post('/adjust-cv', upload.single('pdf'), async (req, res) => {
 
     const { cleaned: anonymisedText, removed: piiRemoved } = cleanAndAnonymise(resumeText);
 
-    // Scrape job description if URL provided
-    let jobDescription = null;
-    let scrapeSuccess = false;
-    if (jobUrl) {
-      jobDescription = await scrapeJobDescription(jobUrl);
-      scrapeSuccess = !!jobDescription;
-    }
+    const prompt = jobInput
+      ? `You are an expert CV optimization assistant.
 
-    let prompt;
-    if (jobDescription) {
-      prompt = `You are an expert CV optimization assistant.
-
-Analyze the following job description and CV, then provide specific, actionable suggestions to tailor the CV for this role.
+Analyze the following role/job description and CV, then provide specific, actionable suggestions to tailor the CV.
 
 Focus on:
 - Keywords and skills from the job description that are missing or underemphasized in the CV
@@ -278,26 +239,17 @@ Focus on:
 - Achievements that are most relevant and should be highlighted
 - Any gaps or areas to address
 
-Job Description:
-${jobDescription}
+Role / Job Description:
+${jobInput}
 
 CV:
-${anonymisedText}`;
-    } else if (role) {
-      prompt = `You are a CV optimization assistant.
-Given the following CV text, suggest improvements to target the role "${role}".
-Do not fully rewrite; instead, return a list of suggested changes, highlighting skills, achievements, and areas to emphasize.
-
-CV:
-${anonymisedText}`;
-    } else {
-      prompt = `You are an expert CV optimization assistant.
+${anonymisedText}`
+      : `You are an expert CV optimization assistant.
 Analyze the following CV and provide specific, actionable suggestions to improve it.
 Focus on clarity, impact, and highlighting key achievements.
 
 CV:
 ${anonymisedText}`;
-    }
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -306,7 +258,7 @@ ${anonymisedText}`;
     });
 
     const suggestions = message.content[0].text;
-    res.json({ suggestions, scrapeSuccess, jobUrlProvided: !!jobUrl, piiRemoved });
+    res.json({ suggestions, piiRemoved });
 
   } catch (error) {
     console.error('Backend error:', error);
