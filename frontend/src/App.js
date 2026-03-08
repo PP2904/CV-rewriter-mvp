@@ -89,6 +89,14 @@ const styles = `
     margin-bottom: 10px;
   }
 
+  .label-hint {
+    font-size: 10px;
+    color: #4a4038;
+    letter-spacing: 0.05em;
+    text-transform: none;
+    margin-left: 8px;
+  }
+
   .drop-zone {
     border: 1px dashed #3a3028;
     border-radius: 2px;
@@ -112,7 +120,7 @@ const styles = `
 
   .file-name { font-size: 12px; color: #c8a870; margin-top: 8px; font-style: italic; }
 
-  input[type="url"] {
+  textarea {
     width: 100%;
     background: #111;
     border: 1px solid #2a2520;
@@ -123,48 +131,21 @@ const styles = `
     padding: 12px 16px;
     outline: none;
     transition: border-color 0.2s;
-  }
-
-  input[type="url"]:focus { border-color: #c8a870; }
-  input[type="url"]:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .url-hint { font-size: 11px; color: #c8a870; margin-top: 8px; line-height: 1.5; }
-
-  .scrape-warning {
-    background: #1a1508;
-    border: 1px solid #4a3a10;
-    border-radius: 2px;
-    padding: 12px 16px;
-    font-size: 12px;
-    color: #c8a030;
-    margin-top: 12px;
+    resize: vertical;
+    min-height: 80px;
     line-height: 1.6;
   }
 
-  select {
-    width: 100%;
-    background: #111;
-    border: 1px solid #2a2520;
-    border-radius: 2px;
-    color: #f0ede6;
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    padding: 12px 16px;
-    outline: none;
-    transition: border-color 0.2s;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a08060' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 16px center;
-    padding-right: 40px;
-    margin-top: 10px;
+  textarea:focus { border-color: #c8a870; }
+  textarea:disabled { opacity: 0.4; cursor: not-allowed; }
+  textarea::placeholder { color: #4a4038; }
+
+  .field-hint {
+    font-size: 11px;
+    color: #6a5a40;
+    margin-top: 8px;
+    line-height: 1.5;
   }
-
-  select:focus { border-color: #c8a870; }
-  select option { background: #161616; }
-
-  .fallback-label { font-size: 11px; color: #c8a030; margin-top: 12px; display: block; }
 
   .btn {
     width: 100%;
@@ -317,14 +298,6 @@ const styles = `
   }
 `;
 
-const ROLES = [
-  'Product Manager',
-  'Engineering Manager',
-  'Business Analyst',
-  'Implementation Manager',
-  'Solution Architect',
-];
-
 const STEPS = [
   { id: 'parse', label: 'Parsing your CV...' },
   { id: 'anonymise', label: 'Anonymising your data...' },
@@ -345,10 +318,7 @@ function buildPrivacyReport(piiRemoved) {
 
 export default function App() {
   const [file, setFile] = useState(null);
-  const [jobUrl, setJobUrl] = useState('');
-  const [fallbackRole, setFallbackRole] = useState(ROLES[0]);
-  const [showFallback, setShowFallback] = useState(false);
-  const [scrapeFailed, setScrapeFailed] = useState(false);
+  const [jobInput, setJobInput] = useState('');
   const [suggestions, setSuggestions] = useState('');
   const [piiRemoved, setPiiRemoved] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -357,14 +327,6 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
 
-  const handleJobUrl = (e) => {
-    setJobUrl(e.target.value);
-    if (e.target.value) {
-      setScrapeFailed(false);
-      setShowFallback(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return;
@@ -372,13 +334,11 @@ export default function App() {
     setError('');
     setSuggestions('');
     setPiiRemoved(null);
-    setScrapeFailed(false);
 
     try {
       const formData = new FormData();
       formData.append('pdf', file);
-      formData.append('jobUrl', jobUrl);
-      if (showFallback) formData.append('role', fallbackRole);
+      formData.append('jobDescription', jobInput.trim());
 
       setCurrentStep('parse');
       await new Promise(r => setTimeout(r, 600));
@@ -392,16 +352,7 @@ export default function App() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      const { suggestions, scrapeSuccess, jobUrlProvided, piiRemoved } = response.data;
-
-      if (jobUrlProvided && !scrapeSuccess && !showFallback) {
-        setScrapeFailed(true);
-        setShowFallback(true);
-        setLoading(false);
-        setCurrentStep(null);
-        return;
-      }
-
+      const { suggestions, piiRemoved } = response.data;
       setSuggestions(suggestions);
       setPiiRemoved(piiRemoved);
 
@@ -424,11 +375,10 @@ export default function App() {
         </div>
         <div className="header">
           <h1>Tailor your CV<br />for any <span>role</span></h1>
-          <p className="subtitle">Upload your resume · Paste a job URL · Get precise suggestions</p>
+          <p className="subtitle">Upload your resume · Describe the role · Get precise suggestions</p>
         </div>
 
         <div className="card">
-          
           <form onSubmit={handleSubmit}>
 
             <div className="field">
@@ -461,23 +411,20 @@ export default function App() {
             </div>
 
             <div className="field">
-              <label>Job URL <span style={{ color: '#4a4038' }}></span></label>
-              <input
-                type="url"
-                placeholder="https://linkedin.com/jobs/..."
-                value={jobUrl}
-                onChange={handleJobUrl}
+              <label>
+                Role or Job Description
+                <span className="label-hint">— title or full description</span>
+              </label>
+              <textarea
+                placeholder={"e.g. Senior Product Manager\n\nor paste the full job description here..."}
+                value={jobInput}
+                onChange={e => setJobInput(e.target.value)}
+                disabled={loading}
+                rows={4}
               />
-
-              {scrapeFailed && (
-                <div className="scrape-warning fade-in">
-                  ⚠ Couldn't fetch that job page — the site may block automated access (common on LinkedIn & Indeed).
-                  <span className="fallback-label">Select a role below and we'll tailor your CV to it instead:</span>
-                  <select value={fallbackRole} onChange={e => setFallbackRole(e.target.value)}>
-                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-              )}
+              <div className="field-hint">
+                Type a role title for general tailoring, or paste a full job description for precise matching.
+              </div>
             </div>
 
             <button className="btn" type="submit" disabled={loading || !file}>
@@ -530,10 +477,10 @@ export default function App() {
             </div>
           </div>
         )}
-         <p className="disclaimer">
-            <span>🔒</span>
-            Your CV is anonymised before reaching AI — personal data never leaves your control.
-          </p>
+        <p className="disclaimer">
+          <span>🔒</span>
+          Your CV is anonymised before reaching AI — personal data never leaves your control.
+        </p>
       </div>
     </>
   );
