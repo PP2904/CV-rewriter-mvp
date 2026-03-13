@@ -499,11 +499,11 @@ export default function App() {
               )}
             </div>
 
-            {/* Fallback textarea — shown after scrape failure OR always as optional override */}
-            {(showFallback || !jobUrl) && (
+            {/* Fallback textarea — only shown after scrape failure or if no URL entered */}
+            {(showFallback || (!jobUrl && !loading)) && ( 
               <div className="field fade-in">
                 <span className="fallback-label">
-                  {scrapeFailed ? 'Paste the job description instead' : 'Role or job description'}
+                  {scrapeFailed ? 'URL could not be fetched — paste the job description instead' : 'Role or job description'}
                 </span>
                 <textarea
                   placeholder={"e.g. Senior Product Manager — Payments\n\nor paste the full job description here..."}
