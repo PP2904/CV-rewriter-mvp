@@ -272,6 +272,15 @@ const styles = `
     line-height: 1.6;
   }
 
+  .field-hint {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #a08060;
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
   .privacy-report {
     width: 100%;
     max-width: 640px;
