@@ -479,6 +479,9 @@ export default function App() {
               </div>
             </div>
 
+            <div className="field-hint">
+              Provide either a job URL or describe the role in the text field below.
+            </div>
             <div className="field">
               <label>Job URL <span style={{ color: '#4a4038' }}>(optional)</span></label>
               <input
