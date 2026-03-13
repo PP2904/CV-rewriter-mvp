@@ -453,7 +453,7 @@ export default function App() {
         </div>
         <div className="header">
           <h1>Tailor your CV<br />for any <span>role</span></h1>
-          <p className="subtitle">Upload your resume · Paste a job URL · Get precise suggestions</p>
+          <p className="subtitle">Upload your resume · Paste a Job URL · Get precise suggestions</p>
         </div>
 
         <div className="card">
@@ -488,8 +488,9 @@ export default function App() {
               </div>
             </div>
 
-            <div className="field-hint">
-              Provide either a job URL or describe the role in the text field below.
+            <div className="field-hint" style={{ textAlign: 'center' }}>
+            Provide either a Job URL or<br />
+            describe the role in the text field below.
             </div>
             <div className="field">
               <label>Job URL <span style={{ color: '#4a4038' }}></span></label>
