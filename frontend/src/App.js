@@ -483,7 +483,7 @@ export default function App() {
               Provide either a job URL or describe the role in the text field below.
             </div>
             <div className="field">
-              <label>Job URL <span style={{ color: '#4a4038' }}>(optional)</span></label>
+              <label>Job URL <span style={{ color: '#4a4038' }}></span></label>
               <input
                 type="url"
                 placeholder="https://linkedin.com/jobs/..."
