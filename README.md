@@ -12,7 +12,6 @@ A web app that analyses your CV and generates role-specific improvement suggesti
 - Paste a job posting URL — the app reads the job description automatically
 - Get specific, actionable suggestions to tailor your CV for that role
 - If the job URL can't be scraped, pick a role from a dropdown as fallback
-- For fun: get your CV rewritten by Homer Simpson or Walter White 🍩🧪
 
 Your CV is never stored — it's processed in memory and deleted immediately after analysis.
 
