@@ -629,6 +629,7 @@ export default function App() {
       formData.append('pdf', file);
       formData.append('jobUrl', jobUrl);
       if (jobDescription) formData.append('jobDescription', jobDescription);
+      if (suggestions) formData.append('suggestions', suggestions);
 
       const response = await axios.post('/adjust-cv-premium', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
