@@ -575,5 +575,5 @@ app.post('/feedback', async (req, res) => {
   }
 });
 
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
