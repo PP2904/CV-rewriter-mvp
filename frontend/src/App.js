@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
 const styles = `
@@ -29,15 +29,6 @@ const styles = `
   .header {
     text-align: center;
     margin-bottom: 56px;
-  }
-
-  .eyebrow {
-    font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: #a08060;
-    margin-bottom: 16px;
   }
 
   h1 {
@@ -206,6 +197,30 @@ const styles = `
   .btn:active:not(:disabled) { transform: translateY(1px); }
   .btn:disabled { background: #3a3028; color: #6a6050; cursor: not-allowed; }
 
+  .btn-premium {
+    width: 100%;
+    background: transparent;
+    color: #c8a870;
+    border: 1px solid #c8a870;
+    border-radius: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 16px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.1s;
+    margin-top: 12px;
+  }
+
+  .btn-premium:hover:not(:disabled) {
+    background: #c8a870;
+    color: #0e0e0e;
+  }
+  .btn-premium:active:not(:disabled) { transform: translateY(1px); }
+  .btn-premium:disabled { border-color: #3a3028; color: #6a6050; cursor: not-allowed; }
+
   .loading-steps {
     margin-top: 20px;
     display: flex;
@@ -273,13 +288,13 @@ const styles = `
   }
 
   .field-hint {
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #a08060;
-  margin-bottom: 28px;
-  line-height: 1.6;
-}
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #a08060;
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
 
   .privacy-report {
     width: 100%;
@@ -335,6 +350,142 @@ const styles = `
     line-height: 1.8;
   }
 
+  .download-section {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 16px;
+    background: #161616;
+    border: 1px solid #2a2520;
+    border-radius: 2px;
+    padding: 24px 32px;
+  }
+
+  .download-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #a08060;
+    margin-bottom: 8px;
+  }
+
+  .download-desc {
+    font-size: 12px;
+    color: #6a6050;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .premium-loading {
+    font-size: 11px;
+    color: #c8a870;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal {
+    background: #161616;
+    border: 1px solid #2a2520;
+    border-radius: 2px;
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+    margin: 24px;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #4a4038;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover { color: #a08060; }
+
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: #f0ede6;
+    margin-bottom: 8px;
+  }
+
+  .modal-desc {
+    font-size: 12px;
+    color: #6a6050;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .star-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .star-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.15s, transform 0.1s;
+    padding: 0;
+  }
+
+  .star-btn.active { opacity: 1; }
+  .star-btn:hover { opacity: 0.8; transform: scale(1.1); }
+
+  .feedback-textarea {
+    width: 100%;
+    background: #111;
+    border: 1px solid #2a2520;
+    border-radius: 2px;
+    color: #f0ede6;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px 14px;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .feedback-textarea:focus { border-color: #c8a870; }
+  .feedback-textarea::placeholder { color: #4a4038; }
+
+  .feedback-sent {
+    font-size: 14px;
+    color: #6a8050;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
   .fade-in {
     animation: fadeIn 0.4s ease;
   }
@@ -377,7 +528,31 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(null);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumError, setPremiumError] = useState('');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(null);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const inputRef = useRef();
+
+  // Scroll-triggered feedback modal
+  useEffect(() => {
+    if (!suggestions) return;
+
+    const handleScroll = () => {
+      const scrolled = window.scrollY + window.innerHeight;
+      const total = document.documentElement.scrollHeight;
+      if (scrolled > total * 0.5) {
+        setShowFeedbackModal(true);
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [suggestions]);
 
   const handleJobUrl = (e) => {
     setJobUrl(e.target.value);
@@ -397,6 +572,11 @@ export default function App() {
     setSuggestions('');
     setPiiRemoved(null);
     setScrapeFailed(false);
+    setPremiumError('');
+    setFeedbackRating(null);
+    setFeedbackComment('');
+    setFeedbackSent(false);
+    setShowFeedbackModal(false);
 
     try {
       const formData = new FormData();
@@ -436,6 +616,52 @@ export default function App() {
     } finally {
       setLoading(false);
       setCurrentStep(null);
+    }
+  };
+
+  const handlePremiumDownload = async () => {
+    if (!file) return;
+    setPremiumLoading(true);
+    setPremiumError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+      formData.append('jobUrl', jobUrl);
+      if (jobDescription) formData.append('jobDescription', jobDescription);
+
+      const response = await axios.post('/adjust-cv-premium', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `tailored-cv-${timestamp}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      setPremiumError('Failed to generate document. Please try again.');
+    } finally {
+      setPremiumLoading(false);
+    }
+  };
+
+  const handleFeedback = async () => {
+    setFeedbackLoading(true);
+    try {
+      await axios.post('/feedback', { rating: feedbackRating, comment: feedbackComment });
+      setFeedbackSent(true);
+      setTimeout(() => setShowFeedbackModal(false), 1800);
+    } catch (err) {
+      console.error('Feedback error:', err);
+    } finally {
+      setFeedbackLoading(false);
     }
   };
 
@@ -489,11 +715,12 @@ export default function App() {
             </div>
 
             <div className="field-hint" style={{ textAlign: 'center' }}>
-            Provide either a Job URL or<br />
-            describe the role in the text field below.
+              Provide either a Job URL or<br />
+              describe the role in the text field below.
             </div>
+
             <div className="field">
-              <label>Job URL <span style={{ color: '#4a4038' }}></span></label>
+              <label>Job URL</label>
               <input
                 type="url"
                 placeholder="https://linkedin.com/jobs/..."
@@ -504,7 +731,6 @@ export default function App() {
               <div className="url-hint">
                 We'll attempt to fetch the job description automatically.
               </div>
-
               {scrapeFailed && (
                 <div className="scrape-warning fade-in">
                   ⚠ Couldn't fetch that job page — the site may block automated access (common on LinkedIn &amp; Indeed).
@@ -512,8 +738,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Fallback textarea — only shown after scrape failure or if no URL entered */}
-            {(showFallback || (!jobUrl && !loading)) && ( 
+            {(showFallback || (!jobUrl && !loading)) && (
               <div className="field fade-in">
                 <span className="fallback-label">
                   {scrapeFailed ? 'URL could not be fetched — paste the job description instead' : 'Role or job description'}
@@ -575,6 +800,30 @@ export default function App() {
           </div>
         )}
 
+        {suggestions && file && (
+          <div className="download-section fade-in">
+            <div className="download-label">Download Rewritten CV</div>
+            <div className="download-desc">
+              Get a fully rewritten, ATS-friendly version of your CV tailored to the role — ready to download as a Word document.
+            </div>
+            <button
+              className="btn-premium"
+              onClick={handlePremiumDownload}
+              disabled={premiumLoading}
+              type="button"
+            >
+              {premiumLoading ? 'Generating...' : 'Download Rewritten CV (.docx) →'}
+            </button>
+            {premiumLoading && (
+              <div className="premium-loading">
+                <span className="spinner" />
+                Rewriting your CV — this takes a moment...
+              </div>
+            )}
+            {premiumError && <div className="error">⚠ {premiumError}</div>}
+          </div>
+        )}
+
         {suggestions && (
           <div className="results fade-in">
             <div className="results-header">
@@ -586,6 +835,60 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {showFeedbackModal && (
+          <div className="modal-overlay" onClick={() => setShowFeedbackModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <button
+                className="modal-close"
+                onClick={() => setShowFeedbackModal(false)}
+                type="button"
+              >
+                ✕
+              </button>
+              {feedbackSent ? (
+                <div className="feedback-sent">✓ Thanks for your feedback!</div>
+              ) : (
+                <>
+                  <div className="modal-title">How was your rewrite?</div>
+                  <div className="modal-desc">Takes 10 seconds — helps us improve the tool.</div>
+                  <div className="star-row">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        className={`star-btn ${feedbackRating >= star ? 'active' : ''}`}
+                        onClick={() => setFeedbackRating(star)}
+                        disabled={feedbackLoading}
+                        type="button"
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                  {feedbackRating && (
+                    <div className="fade-in">
+                      <textarea
+                        className="feedback-textarea"
+                        placeholder="Anything else you'd like to share? (optional)"
+                        value={feedbackComment}
+                        onChange={e => setFeedbackComment(e.target.value)}
+                      />
+                      <button
+                        className="btn-premium"
+                        onClick={handleFeedback}
+                        disabled={feedbackLoading}
+                        type="button"
+                      >
+                        {feedbackLoading ? 'Sending...' : 'Submit Feedback →'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="disclaimer">
           <span>🔒</span>
           Your CV is anonymised before reaching AI — personal data never leaves your control.

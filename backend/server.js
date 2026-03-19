@@ -11,7 +11,10 @@ import axiosLib from 'axios';
 import * as cheerio from 'cheerio';
 import { faker } from '@faker-js/faker';
 import nlp from 'compromise';
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle } from 'docx';
+import {
+  Document, Packer, Paragraph, TextRun,
+  AlignmentType, BorderStyle
+} from 'docx';
 
 dotenv.config();
 
@@ -234,54 +237,70 @@ function buildDocx(cvText) {
 
   const sectionKeywords = [
     'EXPERIENCE', 'EDUCATION', 'SKILLS', 'SUMMARY', 'PROFILE',
-    'EMPLOYMENT', 'WORK HISTORY', 'ACHIEVEMENTS', 'CERTIFICATIONS',
-    'LANGUAGES', 'PROJECTS', 'REFERENCES', 'OBJECTIVE', 'CAREER',
-    'ABOUT', 'HOBBY', 'INTERNSHIP', 'RELEVANT'
+    'CAREER', 'ACHIEVEMENTS', 'CERTIFICATIONS', 'LANGUAGES',
+    'PROJECTS', 'PUBLICATIONS', 'REFERENCES', 'INTERESTS', 'HOBBIES'
   ];
+
+  const isSectionHeading = (line) => {
+    const upper = line.toUpperCase();
+    return sectionKeywords.some(k => upper === k || upper.startsWith(k + ' ') || upper.endsWith(' ' + k));
+  };
+
+  const isNameLine = (line, index) => index === 0 && /^[A-Z][a-z]/.test(line) && line.split(' ').length <= 4;
+
+  const isBullet = (line) => /^[-•·*]/.test(line);
 
   const children = [];
 
-  lines.forEach((line, idx) => {
-    const upper = line.toUpperCase();
-    const isSection = sectionKeywords.some(k => upper.includes(k)) && line.length < 60;
-    const isBullet = line.startsWith('-') || line.startsWith('•') || line.startsWith('*');
-    const isFirstLine = idx === 0;
-
-    if (isFirstLine) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: line, bold: true, size: 32, font: 'Calibri' })],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 120 },
-      }));
-    } else if (isSection) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: line.toUpperCase(), bold: true, size: 22, font: 'Calibri', color: '1F2937' })],
-        spacing: { before: 240, after: 80 },
-        border: {
-          bottom: { color: 'CCCCCC', space: 1, style: BorderStyle.SINGLE, size: 6 }
-        },
-      }));
-    } else if (isBullet) {
-      const text = line.replace(/^[-•*]\s*/, '');
-      children.push(new Paragraph({
-        children: [new TextRun({ text, size: 20, font: 'Calibri', color: '374151' })],
-        bullet: { level: 0 },
-        spacing: { after: 60 },
-      }));
+  lines.forEach((line, index) => {
+    if (isNameLine(line, index)) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: line, bold: true, size: 28, font: 'Calibri' })],
+          alignment: AlignmentType.LEFT,
+          spacing: { after: 80 },
+        })
+      );
+    } else if (isSectionHeading(line)) {
+      children.push(
+        new Paragraph({
+          border: { bottom: { color: '2C2C2C', size: 6, style: BorderStyle.SINGLE } },
+          spacing: { before: 240, after: 80 },
+          children: [new TextRun({ text: line, bold: true, size: 22, font: 'Calibri', color: '1A1A1A' })],
+        })
+      );
+    } else if (isBullet(line)) {
+      children.push(
+        new Paragraph({
+          bullet: { level: 0 },
+          children: [new TextRun({ text: line.replace(/^[-•·*]\s*/, ''), size: 20, font: 'Calibri', color: '2C2C2C' })],
+          spacing: { after: 60 },
+        })
+      );
     } else {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: line, size: 20, font: 'Calibri', color: '374151' })],
-        spacing: { after: 60 },
-      }));
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: line, size: 20, font: 'Calibri', color: '2C2C2C' })],
+          spacing: { after: 60 },
+        })
+      );
     }
   });
 
   return new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: 'Calibri', size: 20, color: '2C2C2C' },
+          paragraph: { spacing: { line: 276 } },
+        },
+      },
+    },
     sections: [{
       properties: {
         page: {
-          margin: { top: 720, bottom: 720, left: 1080, right: 1080 }
-        }
+          margin: { top: 720, bottom: 720, left: 900, right: 900 },
+        },
       },
       children,
     }],
@@ -396,7 +415,7 @@ ${anonymisedText}
   }
 });
 
-// --- Premium endpoint — full CV rewrite as .docx download ---
+// --- Premium endpoint — full rewrite as .docx ---
 app.post('/adjust-cv-premium', upload.single('pdf'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
 
@@ -424,9 +443,11 @@ app.post('/adjust-cv-premium', upload.single('pdf'), async (req, res) => {
     const { cleaned: anonymisedText } = cleanAndAnonymise(resumeText);
 
     let jobContent = null;
+    let scrapeSuccess = false;
 
     if (jobUrl) {
       jobContent = await scrapeJobDescription(jobUrl);
+      scrapeSuccess = !!jobContent;
     }
 
     if (!jobContent && jobDescription) {
@@ -436,8 +457,8 @@ app.post('/adjust-cv-premium', upload.single('pdf'), async (req, res) => {
     const systemPrompt = `You are an expert CV writer. Your task is to rewrite the provided CV to make it highly tailored, impactful, and ATS-friendly for the target role.
 
 Rules:
-- Preserve ALL factual details from the original CV without exception — every job title, company name, university, degree, thesis, date, grade, certification, internship, and side project must appear in the output
-- Do not remove, merge, summarise, or omit any role, institution, or experience — if it is in the input it must be in the output
+- Preserve ALL factual details from the original CV without exception — every job title, company name, university, degree, date, grade, and qualification must appear in the output
+- Do not remove, merge, summarise, or omit any role, institution, or experience
 - Preserve the original CV structure and sections exactly (e.g. Summary, Experience, Education, Skills)
 - Rewrite and strengthen the language within each section — improve wording, add impact, use strong action verbs
 - Quantify achievements where the original provides enough context to do so
@@ -450,14 +471,16 @@ Rules:
 
     let userMessage;
     if (jobContent) {
-      userMessage = `Rewrite this CV to be highly tailored for the role described below. Preserve the structure and every factual detail. Only improve the language and emphasis.
+      userMessage = `Rewrite this CV to be highly tailored for the role described below.
 
-IMPORTANT: You must include ALL of the following found in the CV — do not skip any:
+IMPORTANT: You must include ALL of the following sections found in the CV — do not skip any:
 - Every job role and company
-- Every university degree and thesis title
+- Every university degree and thesis
 - Every certification
-- Every hobby or side project
+- Every hobby/side project
 - Every internship
+
+Preserve every factual detail. Only improve the language.
 
 <job_description>
 ${jobContent}
@@ -467,14 +490,9 @@ ${jobContent}
 ${anonymisedText}
 </cv>`;
     } else {
-      userMessage = `Rewrite this CV to be more impactful and ATS-friendly. Preserve the structure and every factual detail. Only improve the language.
+      userMessage = `Rewrite this CV to be more impactful and ATS-friendly.
 
-IMPORTANT: You must include ALL of the following found in the CV — do not skip any:
-- Every job role and company
-- Every university degree and thesis title
-- Every certification
-- Every hobby or side project
-- Every internship
+IMPORTANT: You must include ALL sections found in the CV — do not skip any roles, degrees, certifications, projects or internships. Preserve every factual detail. Only improve the language.
 
 <cv>
 ${anonymisedText}
@@ -489,7 +507,6 @@ ${anonymisedText}
     });
 
     const rewrittenCV = message.content[0].text;
-
     const doc = buildDocx(rewrittenCV);
     const buffer = await Packer.toBuffer(doc);
 
@@ -503,6 +520,35 @@ ${anonymisedText}
     res.status(500).json({ error: error.message });
   } finally {
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+  }
+});
+
+// --- Feedback endpoint ---
+app.post('/feedback', async (req, res) => {
+  const { rating, comment } = req.body;
+
+  if (!rating) return res.status(400).json({ error: 'Rating required' });
+
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: 'CV Tailor <onboarding@resend.dev>',
+      to: process.env.FEEDBACK_TO_EMAIL,
+      subject: `CV Tailor Feedback — ${rating} star${rating > 1 ? 's' : ''}`,
+      html: `
+        <h2>New CV Tailor Feedback</h2>
+        <p><strong>Rating:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p>
+        <p><strong>Comment:</strong> ${comment ? comment : 'No comment left.'}</p>
+        <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+      `,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Feedback email error:', err);
+    res.status(500).json({ error: 'Failed to send feedback' });
   }
 });
 
