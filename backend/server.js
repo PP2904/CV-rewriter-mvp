@@ -481,6 +481,11 @@ ${anonymisedText}
 </cv>`;
     }
 
+    // --- Debug logging of the anonymised CV sent to the AI after clicking "Generate Tailored CV" Download button ---
+    console.log('--- ANONYMISED CV SENT TO AI ---');
+    console.log(anonymisedText);
+    console.log('--- END ---');
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
