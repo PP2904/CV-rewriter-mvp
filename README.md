@@ -1,44 +1,46 @@
 # CV Tailor — AI-Powered Resume Optimizer
 
-A web app that analyses your CV and generates role-specific improvement suggestions using AI. Paste a job posting URL and get tailored, actionable feedback in seconds.
+A web tool that analyses your CV against a job description and returns
+specific, actionable suggestions to help you tailor it for the role.
 
-🔗 **Live:** [api.paymentsmadeeasy.de](https://api.paymentsmadeeasy.de)
+Personal data is anonymised before reaching the AI. Nothing is stored.
 
 ---
 
 ## What it does
 
 - Upload your CV as a PDF
-- Paste a job posting URL — the app reads the job description automatically
-- Get specific, actionable suggestions to tailor your CV for that role
-- If the job URL can't be scraped, pick a role from a dropdown as fallback
+- Paste a job posting URL or describe the role
+- Get tailored, actionable suggestions in seconds
+- Download a fully rewritten CV as a Word document (premium)
 
-Your CV is never stored — it's processed in memory and deleted immediately after analysis.
+---
+
+## Privacy
+
+- PII (name, email, phone, address) stripped before any AI call
+- No database — nothing stored between requests
+- Temp files deleted immediately after processing
 
 ---
 
 ## Built with
 
-- **React** — frontend
-- **Node.js + Express** — backend API
-- **Anthropic Claude** — AI suggestions
-- **AWS EC2 + Nginx** — hosting & deployment
+- React, Node.js, Express
+- Anthropic Claude API
+- AWS EC2 + Nginx
 
 ---
 
 ## Local setup
 
 ```bash
-# Backend
 cd backend && npm install
-echo "ANTHROPIC_API_KEY=your-key" > .env
+cp .env.example .env   # add your Anthropic API key
 node server.js
 
-# Frontend
 cd frontend && npm install && npm start
 ```
-
-Get an API key at [console.anthropic.com](https://console.anthropic.com).
 
 ---
 
