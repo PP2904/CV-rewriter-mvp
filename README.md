@@ -19,13 +19,28 @@ Personal data is anonymised before reaching the AI. Nothing is stored.
 
 ### Freemium
 
-- Upload your CV as a PDF
-- Paste a job posting URL — the app reads the job description automatically
-- Get specific, actionable suggestions to tailor your CV for that role
-- If the job URL can't be scraped, pick a role from a dropdown as fallback
-- For fun: get your CV rewritten by Homer Simpson or Walter White 🍩🧪
+- Upload your CV as a PDF (up to 5MB)
+- Paste a job URL — the app scrapes the job description automatically
+- Falls back to a manual text field if the URL can't be scraped
+- Returns specific, actionable suggestions tailored to the role
+- PII (name, email, phone, URLs, address) stripped before sending to AI
 
-Your CV is never stored — it's processed in memory and deleted immediately after analysis.
+### Premium
+
+- Everything in freemium, plus:
+- Fully rewritten CV incorporating the suggestions
+- Downloaded as a clean, ATS-friendly `.docx` file (Calibri, structured sections)
+- Suggestions chained into the rewrite prompt for consistency
+- Star rating + comment feedback collected via Resend
+
+---
+
+## Privacy
+
+- CV is parsed in memory, temp file deleted immediately after
+- PII anonymised using regex + NLP (compromise.js) before any AI call
+- No database — nothing is stored between requests
+- Anthropic does not train on API request data by default
 
 ---
 
